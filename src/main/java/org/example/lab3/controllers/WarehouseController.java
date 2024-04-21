@@ -5,20 +5,38 @@ import com.google.gson.reflect.TypeToken;
 import org.example.lab3.model.Manager;
 import org.example.lab3.model.Product;
 import org.example.lab3.model.Warehouse;
+import org.example.lab3.repos.ManagerRepo;
+import org.example.lab3.repos.ProductRepo;
+import org.example.lab3.repos.UserRepo;
 import org.example.lab3.repos.WarehouseRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 
 @RestController
 public class WarehouseController {
 
     @Autowired
     private WarehouseRepo warehouseRepo;
+    @Autowired
+    private UserRepo userRepo;
+    @Autowired
+    private ProductRepo productRepo;
+    @Autowired
+    private ManagerRepo managerRepo;
+
+    private static List<Integer> convertStringToIntegerList(String input) {
+        String[] parts = input.split(",");
+        List<Integer> result = new ArrayList<>();
+        for (String part : parts) {
+            result.add(Integer.parseInt(part.trim()));
+        }
+        return result;
+    }
+
+
 
     @GetMapping(value = "/getAllWarehouses")
     public @ResponseBody Iterable<Warehouse> getAllWarehouses() {return warehouseRepo.findAll();}
@@ -28,6 +46,40 @@ public class WarehouseController {
     public @ResponseBody Warehouse createSpoiler(@RequestBody Warehouse warehouse){
         warehouseRepo.save(warehouse);
         return new Warehouse();
+    }
+    @PostMapping(value = "/createWarehouseWithIds")
+    public @ResponseBody Warehouse createWarehouseWithIds(@RequestBody String info){
+        Gson gson = new Gson();
+        Properties properties = gson.fromJson(info, Properties.class);
+
+        var address = properties.getProperty("address");
+        List<Integer> stockIds =  convertStringToIntegerList(properties.getProperty("stock"));
+        List<Integer> managerIds = convertStringToIntegerList(properties.getProperty("managers"));
+
+        Warehouse warehouse = new Warehouse();
+
+        warehouse.setAddress(address);
+
+        if (stockIds != null) {
+            List<Product> products = new ArrayList<>();
+            stockIds.forEach(productId -> {
+                Optional<Product> productOptional = productRepo.findById(productId);
+                productOptional.ifPresent(products::add);
+            });
+            warehouse.setStock(products);
+        }
+
+        if (managerIds != null) {
+            List<Manager> managers = new ArrayList<>();
+            managerIds.forEach(managerId -> {
+                Optional<Manager> managerOptional = managerRepo.findById(managerId);
+                managerOptional.ifPresent(managers::add);
+            });
+            warehouse.setManagers(managers);
+        }
+        warehouseRepo.save(warehouse);
+
+        return warehouse;
     }
 
 
@@ -60,8 +112,6 @@ public class WarehouseController {
                     warehouse.getStock().add(product);
                 });
             }
-
-            // Update managers if provided
             if (managerIds != null) {
                 warehouse.getManagers().clear();
                 managerIds.forEach(managerId -> {
