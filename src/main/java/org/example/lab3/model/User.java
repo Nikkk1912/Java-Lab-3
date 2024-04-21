@@ -28,6 +28,7 @@ public abstract class User implements Serializable {
     private String password;
     @ManyToOne
     private Shop shop;
+    @JsonIgnore
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     @LazyCollection(LazyCollectionOption.FALSE)
     private List<Cart> myPurchases;

@@ -1,5 +1,6 @@
 package org.example.lab3.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,8 +26,10 @@ public class Product implements Serializable {
     protected String description;
     protected int quantity;
     protected float price;
+    @JsonIgnore
     @ManyToOne()
     private Warehouse warehouse;
+    @JsonIgnore
     @OneToMany(mappedBy = "whichProductCommented", cascade = CascadeType.ALL, orphanRemoval = true)
     @LazyCollection(LazyCollectionOption.FALSE)
     protected List<Comment> comments;
