@@ -28,6 +28,10 @@ public class WarehouseController {
     private ManagerRepo managerRepo;
 
     private static List<Integer> convertStringToIntegerList(String input) {
+        if(Objects.equals(input, "")) {
+            List<Integer> result = new ArrayList<>();
+            return result;
+        }
         String[] parts = input.split(",");
         List<Integer> result = new ArrayList<>();
         for (String part : parts) {
@@ -60,24 +64,34 @@ public class WarehouseController {
 
         warehouse.setAddress(address);
 
+        List<Product> products = new ArrayList<>();
         if (stockIds != null) {
-            List<Product> products = new ArrayList<>();
             stockIds.forEach(productId -> {
                 Optional<Product> productOptional = productRepo.findById(productId);
-                productOptional.ifPresent(products::add);
+                productOptional.ifPresent(product -> {
+                    product.setWarehouse(warehouse);
+                    products.add(product);
+                });
             });
+
             warehouse.setStock(products);
         }
 
+        List<Manager> managers = new ArrayList<>();
         if (managerIds != null) {
-            List<Manager> managers = new ArrayList<>();
+
             managerIds.forEach(managerId -> {
                 Optional<Manager> managerOptional = managerRepo.findById(managerId);
-                managerOptional.ifPresent(managers::add);
+                managerOptional.ifPresent(manager -> {
+                    manager.setWarehouse(warehouse);
+                    managers.add(manager);
+                });
             });
             warehouse.setManagers(managers);
         }
         warehouseRepo.save(warehouse);
+        productRepo.saveAll(products);
+        managerRepo.saveAll(managers);
 
         return warehouse;
     }
@@ -95,34 +109,56 @@ public class WarehouseController {
 
         var id = Integer.parseInt(properties.getProperty("id"));
         var address = properties.getProperty("address");
-        List<Integer> stockIds = gson.fromJson(properties.getProperty("stock"), new TypeToken<List<Integer>>() {}.getType());
-        List<Integer> managerIds = gson.fromJson(properties.getProperty("managers"), new TypeToken<List<Integer>>() {}.getType());
+        List<Integer> stockIds =  convertStringToIntegerList(properties.getProperty("stock"));
+        List<Integer> managerIds = convertStringToIntegerList(properties.getProperty("managers"));
 
         Optional<Warehouse> optionalWarehouse = warehouseRepo.findById(id);
         if (optionalWarehouse.isPresent()) {
             Warehouse warehouse = optionalWarehouse.get();
             warehouse.setAddress(address);
 
+            warehouse.getStock().forEach(product -> {
+                product.setWarehouse(null);
+                productRepo.save(product);
+            });
 
+            warehouse.getManagers().forEach(manager -> {
+                manager.setWarehouse(null);
+                managerRepo.save(manager);
+            });
+
+
+
+            List<Product> products = new ArrayList<>();
             if (stockIds != null) {
-                warehouse.getStock().clear();
                 stockIds.forEach(productId -> {
-                    Product product = new Product();
-                    product.setId(productId);
-                    warehouse.getStock().add(product);
+                    Optional<Product> productOptional = productRepo.findById(productId);
+                    productOptional.ifPresent(product -> {
+                        product.setWarehouse(warehouse);
+                        products.add(product);
+                    });
                 });
-            }
-            if (managerIds != null) {
-                warehouse.getManagers().clear();
-                managerIds.forEach(managerId -> {
-                    Manager manager = new Manager();
-                    manager.setId(managerId);
-                    warehouse.getManagers().add(manager);
-                });
+
+                warehouse.setStock(products);
             }
 
-            Warehouse updatedWarehouse = warehouseRepo.save(warehouse);
-            return updatedWarehouse;
+            List<Manager> managers = new ArrayList<>();
+            if (managerIds != null) {
+
+                managerIds.forEach(managerId -> {
+                    Optional<Manager> managerOptional = managerRepo.findById(managerId);
+                    managerOptional.ifPresent(manager -> {
+                        manager.setWarehouse(warehouse);
+                        managers.add(manager);
+                    });
+                });
+                warehouse.setManagers(managers);
+            }
+
+            warehouseRepo.save(warehouse);
+            productRepo.saveAll(products);
+            managerRepo.saveAll(managers);
+            return warehouse;
         } else {
             throw new RuntimeException("Warehouse with ID " + id + " not found");
         }

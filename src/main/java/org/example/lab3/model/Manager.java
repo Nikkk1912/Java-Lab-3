@@ -22,6 +22,7 @@ import java.util.List;
 @Entity
 public class Manager extends User {
     private boolean isAdmin;
+    @JsonIgnore
     @ManyToOne
     private Warehouse warehouse;
     @JsonIgnore
