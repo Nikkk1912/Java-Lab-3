@@ -27,9 +27,6 @@ public class Cart {
     private User customer;
     @ManyToOne
     private Manager manager;
-    @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL)
-    @LazyCollection(LazyCollectionOption.FALSE)
-    private List<Comment> chat;
 
     public Cart(User customer, Manager manager, List<Product> items) {
         this.customer = customer;

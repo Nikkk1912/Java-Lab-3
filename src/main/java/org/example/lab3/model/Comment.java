@@ -33,8 +33,6 @@ public class Comment {
     @ManyToOne()
     private Comment parentComment;
     private float rating;
-    @ManyToOne
-    private Cart chat;
 
     public Comment(String commentTitle, String commentBody, float rating) {
         this.commentTitle = commentTitle;
