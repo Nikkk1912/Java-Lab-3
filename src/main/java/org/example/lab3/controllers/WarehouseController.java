@@ -2,6 +2,7 @@ package org.example.lab3.controllers;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.example.lab3.model.Cart;
 import org.example.lab3.model.Manager;
 import org.example.lab3.model.Product;
 import org.example.lab3.model.Warehouse;
@@ -10,6 +11,8 @@ import org.example.lab3.repos.ProductRepo;
 import org.example.lab3.repos.UserRepo;
 import org.example.lab3.repos.WarehouseRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -166,9 +169,15 @@ public class WarehouseController {
 
 
     @DeleteMapping(value = "/deleteWarehouse/{id}")
-    public @ResponseBody Optional<Warehouse> deleteWarehouse(@PathVariable(name = "id") int id) {
-        warehouseRepo.deleteById(id);
-        return warehouseRepo.findById(id);
+    public @ResponseBody ResponseEntity<String> deleteWarehouse(@PathVariable(name = "id") int id) {
+        Optional<Warehouse> optionalWarehouse = warehouseRepo.findById(id);
+        if (optionalWarehouse.isPresent()) {
+            Warehouse warehouse = optionalWarehouse.get();
+            warehouseRepo.delete(warehouse);
+            return ResponseEntity.ok().body("Warehouse with ID " + id + " has been deleted successfully.");
+        } else {
+            return new ResponseEntity<>("Warehouse with ID " + id + " not found.", HttpStatus.NOT_FOUND);
+        }
     }
 
 }

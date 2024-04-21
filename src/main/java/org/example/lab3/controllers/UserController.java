@@ -4,10 +4,11 @@ import com.google.gson.Gson;
 import org.example.lab3.model.Customer;
 import org.example.lab3.model.Manager;
 import org.example.lab3.model.User;
-import org.example.lab3.repos.CustomerRepo;
-import org.example.lab3.repos.ManagerRepo;
-import org.example.lab3.repos.UserRepo;
+import org.example.lab3.model.Warehouse;
+import org.example.lab3.repos.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -22,6 +23,10 @@ public class UserController {
     private CustomerRepo customerRepo;
     @Autowired
     private UserRepo userRepo;
+    @Autowired
+    private CartRepo cartRepo;
+    @Autowired
+    private WarehouseRepo warehouseRepo;
 
 
 
@@ -124,8 +129,28 @@ public class UserController {
 
 
     @DeleteMapping(value = "/deleteUser/{id}")
-    public @ResponseBody Optional<User> deleteUser(@PathVariable(name = "id") int id){
-        userRepo.deleteById(id);
-        return userRepo.findById(id);
+    public ResponseEntity<String> deleteUser(@PathVariable(name = "id") int id) {
+        Optional<User> userOptional = userRepo.findById(id);
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+
+            user.getMyPurchases().forEach(cart -> {
+                cart.setCustomer(null);
+                cartRepo.save(cart);
+            });
+
+            if (user instanceof Manager && ((Manager) user).getWarehouse() != null) {
+                Warehouse warehouse = ((Manager) user).getWarehouse();
+                warehouse.getManagers().remove(user);
+                warehouseRepo.save(warehouse);
+            }
+
+            userRepo.deleteById(id);
+
+            return ResponseEntity.ok().body("User with ID " + id + " has been deleted successfully.");
+        } else {
+            return new ResponseEntity<>("User with ID " + id + " not found.", HttpStatus.NOT_FOUND);
+        }
     }
 }

@@ -6,6 +6,8 @@ import org.example.lab3.repos.CommentRepo;
 import org.example.lab3.repos.ProductRepo;
 import org.example.lab3.repos.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -26,12 +28,12 @@ public class CommentController {
     public @ResponseBody Iterable<Comment> getAllComments() {return commentRepo.findAll();}
 
     @PostMapping(value = "/createComment")
-    public @ResponseBody Comment createSpoiler(@RequestBody Comment comment){
+    public @ResponseBody Comment createComment(@RequestBody Comment comment){
         commentRepo.save(comment);
         return new Comment();
     }
     @PostMapping(value = "/createCommentWithIds")
-    public @ResponseBody Comment createWarehouseWithIds(@RequestBody String info){
+    public @ResponseBody Comment createCommentWithIds(@RequestBody String info){
         Gson gson = new Gson();
         Properties properties = gson.fromJson(info, Properties.class);
 
@@ -52,14 +54,12 @@ public class CommentController {
         Optional<Product> productOptional = productRepo.findById(whichProductCommented);
         productOptional.ifPresent(product -> {
             product.getComments().add(comment);
-            productRepo.save(product);
             comment.setWhichProductCommented(product);
         });
 
         Optional<User> userOptional = userRepo.findById(commentOwner);
         userOptional.ifPresent(user -> {
             user.getComments().add(comment);
-            userRepo.save(user);
             comment.setCommentOwner(user);
         });
 
@@ -69,7 +69,6 @@ public class CommentController {
             Optional<Comment> commentOptional = commentRepo.findById(parentCommentId);
             commentOptional.ifPresent(comment1 -> {
                 comment1.getReplies().add(comment);
-                commentRepo.save(comment1);
             });
 
         }
@@ -118,16 +117,18 @@ public class CommentController {
     }
 
     @DeleteMapping(value = "/deleteComment/{id}")
-    public @ResponseBody Optional<Comment> deleteComment(@PathVariable(name = "id") int id) {
+    public @ResponseBody ResponseEntity<String> deleteComment(@PathVariable(name = "id") int id) {
         Optional<Comment> commentOptional = commentRepo.findById(id);
 
-        commentOptional.ifPresent(comment -> {
+        if(commentOptional.isPresent()) {
+            Comment comment = commentOptional.get();
             deleteReplies(comment);
             unlinkComment(comment);
             commentRepo.deleteById(id);
-        });
-
-        return commentOptional;
+            return ResponseEntity.ok().body("Comment with ID " + id + " has been deleted successfully.");
+        } else {
+            return new ResponseEntity<>("Comment with ID " + id + " not found.", HttpStatus.NOT_FOUND);
+        }
     }
     private void deleteReplies(Comment comment) {
         if (comment.getReplies() != null) {

@@ -33,6 +33,7 @@ public class Product implements Serializable {
     @OneToMany(mappedBy = "whichProductCommented", cascade = CascadeType.ALL, orphanRemoval = true)
     @LazyCollection(LazyCollectionOption.FALSE)
     protected List<Comment> comments;
+    @JsonIgnore
     @ManyToOne
     private Cart cart;
     @ManyToOne
